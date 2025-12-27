@@ -37,58 +37,51 @@ commendations = [
 ]
 
 
-def fix_marks(schoolkid):
+def get_schoolkid(schoolkid):
+    if not schoolkid or schoolkid.strip() == '':
+        print('Ошибка: Не указано имя ученика или указано некорректно')
     try:
-        if not schoolkid or schoolkid.strip() == '':
-            print('Ошибка: Не указано имя ученика или указано некорректно')
-        schoolkid_name = Schoolkid.objects.get(full_name__contains=schoolkid)
-        schoolkid_marks = Mark.objects.filter(schoolkid=schoolkid_name)
-        bad_marks = schoolkid_marks.filter(points__in=[2, 3])
-        return bad_marks.update(points=5)
+        return Schoolkid.objects.get(full_name__contains=schoolkid)
     except Schoolkid.DoesNotExist:
         print(f'Ошибка: Ученик {schoolkid} не найден!')
     except Schoolkid.MultipleObjectsReturned:
         print(f'Ошибка: Найдено несколько учеников с именем {schoolkid}')
+
+
+def fix_marks(schoolkid):
+    schoolkid_name = get_schoolkid(schoolkid)
+    schoolkid_marks = Mark.objects.filter(schoolkid=schoolkid_name)
+    bad_marks = schoolkid_marks.filter(points__in=[2, 3])
+    return bad_marks.update(points=5)
 
 
 def remove_chastisements(schoolkid):
-    try:
-        if not schoolkid or schoolkid.strip() == '':
-            print('Ошибка: Не указано имя ученика или указано некорректно')
-        schoolkid_name = Schoolkid.objects.get(full_name__contains=schoolkid)
-        schoolkid_chast = Chastisement.objects.filter(schoolkid=schoolkid_name)
-        return schoolkid_chast.delete()
-    except Schoolkid.DoesNotExist:
-        print(f'Ошибка: Ученик {schoolkid} не найден!')
-    except Schoolkid.MultipleObjectsReturned:
-        print(f'Ошибка: Найдено несколько учеников с именем {schoolkid}')
+    schoolkid_name = get_schoolkid(schoolkid)
+    schoolkid_chast = Chastisement.objects.filter(schoolkid=schoolkid_name)
+    return schoolkid_chast.delete()
 
 
-def create_commendation(schoolkid, subject):
+def create_commendation(schoolkid, subject, teacher):
+    schoolkid_name = get_schoolkid(schoolkid)
+    if not subject or subject.strip() == '':
+        print('Ошибка: Не указан предмет или указано некорректно!')
+    commendation_date = date.today()
+    commendation_text = random.choice(commendations)
     try:
-        if not schoolkid or schoolkid.strip() == '':
-            print('Ошибка: Не указано имя ученика или указано некорректно')
-        if not subject or subject.strip() == '':
-            print('Ошибка: Не указан предмет или указано некорректно!')
-        schoolkid_name = Schoolkid.objects.get(full_name__contains=schoolkid)
-        any_subject = Subject.objects.get(
+        school_subject = Subject.objects.get(
             title=subject,
             year_of_study=schoolkid_name.year_of_study
         )
-        teacher_m = Teacher.objects.get(full_name__contains='Селезнева Майя')
-        date_с = date.today()
-        text_c = random.choice(commendations)
-        create_commendation_obj = Commendation.objects.create(
-            text=text_c,
+        school_teacher = Teacher.objects.get(full_name__contains=teacher)
+        created_commendation = Commendation.objects.create(
+            text=commendation_text,
             schoolkid=schoolkid_name,
-            subject=any_subject,
-            teacher=teacher_m,
-            created=date_с
+            subject=school_subject,
+            teacher=school_teacher,
+            created=commendation_date
         )
-        return create_commendation_obj
-    except Schoolkid.DoesNotExist:
-        print(f'Ошибка: Ученик {schoolkid} не найден!')
+        return created_commendation
     except Subject.DoesNotExist:
         print(f'Ошибка: Предмет {subject} не найден!')
-    except Schoolkid.MultipleObjectsReturned:
-        print(f'Ошибка: Найдено несколько учеников с именем {schoolkid}')
+    except Teacher.DoesNotExist:
+        print(f'Ошибка: Учитель {teacher} не найден!')
